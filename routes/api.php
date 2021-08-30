@@ -17,3 +17,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Route::resource('cliente', 'App\Http\Controllers\ClienteController');
+
+// apiResource não implementa os métodos create e edit, até por que apenas serão manipulados documentos pela API
+Route::apiResource('cliente', 'ClienteController');
+Route::apiResource('carro', 'CarroController');
+Route::apiResource('locacao', 'LocacaoController');
+Route::apiResource('marca', 'MarcaController');
+Route::apiResource('modelo', 'ModeloController');
