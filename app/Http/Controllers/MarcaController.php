@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
 use App\Models\Marca;
+use App\Repositories\MarcaRepository;
 use Illuminate\Http\Request;
 
 class MarcaController extends Controller
@@ -18,10 +19,58 @@ class MarcaController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $marcas = $this->marca->with('modelos')->get();
+        $marcaRepository = new MarcaRepository($this->marca);
+
+        if($request->has('atributos_modelos')) {
+            $atributos_modelos = 'modelos:id,'.$request->atributos_modelos;
+            $marcaRepository->selectRegistrosRelacionadosPelosAtributosModelos($atributos_modelos);
+        } else {
+            $marcaRepository->selectRegistrosRelacionadosPelosAtributosModelos('modelos');
+        }
+
+        if($request->has('filtro')) {
+           $marcaRepository->filtro($request->filtro);
+        }
+        
+        if($request->has('atributos')) {
+            $atributos = $request->atributos;
+            $marcaRepository->selectRegistroRelacionadosPelosAtributos($atributos);
+        } 
+
+        $marcas = $marcaRepository->getResultados();
+
         return response()->json($marcas, 200);
+
+        // Código antes da criação de Repository 
+        // $marcas = array();
+
+        // if($request->has('atributos_modelos')) {
+        //     $atributos_modelos = $request->atributos_modelos;
+        //     $marcas = $this->marca->with('modelos:id,'.$atributos_modelos);
+        // } else {
+        //     $marcas = $this->marca->with('modelos');
+        // }
+
+        // if($request->has('filtro')) {
+        //     // separados os filtros
+        //     $filtros = explode(';', $request->filtro);
+        //     foreach($filtros as $key => $condicao) {
+        //         // separados o paramêtro, o operador e o valor da condição.
+        //         $c = explode(':', $condicao);
+        //         $marcas = $marcas->where($c[0], $c[1], $c[2]);
+        //     }
+        // }
+
+        // if($request->has('atributos')) {
+        //     $atributos = $request->atributos;
+        //     $marcas = $marcas->selectRaw($atributos)->get();
+        // } else {
+        //     $marcas = $marcas->get();
+        // }
+
+        // return response()->json($marcas, 200);
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
 use App\Models\Modelo;
+use App\Repositories\ModeloRepository;
 use Illuminate\Http\Request;
 
 class ModeloController extends Controller
@@ -19,10 +20,34 @@ class ModeloController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $modelo = $this->modelo->with('marca')->get();
-        return response()->json($modelo, 200);
+        $modeloRepository = new ModeloRepository($this->modelo);
+        // Caso o parametro request do método index contenha o atributo 'atributos_marca' 
+        // porém não contêm o atributo 'atributos', o que vai gerar um erro no select, 
+        // verifico primeiro a existência do atributos_marca para depois continuedade 
+        // no processo de requisição.
+        if($request->has('marca')) {
+            $atributos_marca = 'marca:id,'.$request->atributos_marca;
+            $modeloRepository->selectRegistrosRelacionadosPelosAtributosModelos($atributos_marca);
+        } else {
+            $modeloRepository->selectRegistrosRelacionadosPelosAtributosModelos('marca');
+        }
+
+        // Verifico a existência do atributo 'atributos' para poder passar no método selectRaw() (filtro).
+        // Caso não existe pego os registros sem os filtros contornando um possível erro.
+        if($request->has('filtro')) {
+            $modeloRepository->filtro($request->filtro);
+        } 
+
+        if($request->has('atributos')) {
+            $atributos = $request->atributos;
+            $modeloRepository->selectRegistroRelacionadosPelosAtributos($atributos);
+        } 
+
+        $modelos = $modeloRepository->getResultados();
+
+        return response()->json($modelos, 200);
     }
 
     /**
