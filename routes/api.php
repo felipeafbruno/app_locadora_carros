@@ -21,8 +21,19 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 // Route::resource('cliente', 'App\Http\Controllers\ClienteController');
 
 // apiResource não implementa os métodos create e edit, até por que apenas serão manipulados documentos pela API
-Route::apiResource('cliente', 'ClienteController');
-Route::apiResource('carro', 'CarroController');
-Route::apiResource('locacao', 'LocacaoController');
-Route::apiResource('marca', 'MarcaController');
-Route::apiResource('modelo', 'ModeloController');
+Route::prefix('v1')->middleware('jwt.auth')->group(function () {
+    Route::apiResource('cliente', 'ClienteController');
+    Route::apiResource('carro', 'CarroController');
+    Route::apiResource('locacao', 'LocacaoController');
+    Route::apiResource('marca', 'MarcaController');
+    Route::apiResource('modelo', 'ModeloController');
+    
+    // Autenticação
+    Route::post('me', 'AuthController@me');
+    Route::post('refresh', 'AuthController@refresh');
+    Route::post('logout', 'AuthController@logout');
+});
+
+
+// Login e Logout
+Route::post('login', 'AuthController@login');
