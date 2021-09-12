@@ -1,4 +1,5 @@
 <template>
+
     <div class="modal fade" :id="id" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -9,6 +10,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <slot name="alertas"></slot>
                     <slot name="conteudo"></slot>
                 </div>
                 <div class="modal-footer">

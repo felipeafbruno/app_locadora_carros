@@ -47,6 +47,12 @@
         </div>
 
         <modal-component id="modalMarca" titulo="Adicionar Marca">
+            <!-- Alertas  -->
+            <template v-slot:alertas>
+                <alert-component tipo="success" :detalhes="transacaoDetalhes" titulo="Cadastro realizado com sucesso" v-if="transacaoStatus == 'adicionado'"></alert-component>
+                <alert-component tipo="danger" :detalhes="transacaoDetalhes" titulo="Erro ao tentacar cadastrar a marca" v-if="transacaoStatus == 'erro'"></alert-component>
+            </template>
+
             <template v-slot:conteudo>
                 <div class="form-group">
                     <input-container-component titulo="Nome da marca" id="novoNome" id-help="novoNomeHelp" texto-ajuda="Opcional. Informe o nome da marca">
@@ -71,11 +77,25 @@
 
 <script>
     export default {
+        computed: {
+            token() {
+                let token = document.cookie.split(';').find(indice => {
+                    return indice.includes('token=');
+                })
+                .split('=')[1]; 
+                // split('=')[1] separa o token no caractér '=' e pega a segundo posição (no caso [1]) do array retornado
+                // recuperando apenas o token para posteriormente adicionar a palavra Bearer na propriedade Authorization 
+                // das requisições junto do token. 
+                return 'Bearer ' + token ;
+            }
+        },
         data()  {
             return {
                 urlBase: 'http://localhost:8000/api/v1/marca',
                 nomeMarca: '',
-                arquivoImagem: []
+                arquivoImagem: [],
+                transacaoStatus: '',
+                transacaoDetalhes: []
             }
         },
         methods: {
@@ -90,16 +110,20 @@
                 let configuracao = {
                     headers: {
                         'Content-Type': 'multipart/form-data',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'Authorization': this.token
                     }
                 }
     
                 axios.post(this.urlBase, formData, configuracao)
                     .then(response => {
-                        console.log(response)
+                        this.transacaoStatus = 'adicionado';
+                        this.transacaoDetalhes = response
                     })
-                    .catch(errors => {
-                        console.log(errors)
+                    .catch(error => {
+                        this.transacaoStatus = 'erro';
+                        this.transacaoDetalhes = error.response
+                        // console.log(error.response.data.message)
                     })
             }
         }
