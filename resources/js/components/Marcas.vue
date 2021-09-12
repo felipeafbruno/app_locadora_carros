@@ -32,7 +32,8 @@
                 <!-- início do card de listagem de marcas -->
                 <card-component titulo="Relação de Marcas">
                     <template v-slot:conteudo>
-                        <table-component></table-component>   
+                        <!-- sempre que necessário interpretar uma expressão utilize o v-bind assim como em :titulos="[]" -->
+                        <table-component :dados="marcas" :titulos="['ID', 'Nome', 'Imagem']"></table-component>   
                     </template>
 
                     <template v-slot:rodape>
@@ -95,10 +96,27 @@
                 nomeMarca: '',
                 arquivoImagem: [],
                 transacaoStatus: '',
-                transacaoDetalhes: []
+                transacaoDetalhes: [],
+                marcas: []
             }
         },
         methods: {
+            carregarLista() {
+                 let configuracao = {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': this.token
+                    }
+                }
+
+                axios.get(this.urlBase, configuracao)
+                    .then(response => {
+                        this.marcas = response.data;    
+                    })
+                    .catch(errors => {
+                        console.log(erros);
+                    })
+            },
             carregarImagem(e) {
                 this.arquivoImagem = e.target.files;
             },
@@ -126,6 +144,9 @@
                         // console.log(error.response.data.message)
                     })
             }
+        },
+        mounted() {
+            this.carregarLista();
         }
     }
 </script>
