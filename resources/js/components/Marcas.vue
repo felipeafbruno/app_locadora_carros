@@ -10,13 +10,13 @@
                             <div class="form-row">
                                 <div class="col mb-3">
                                     <input-container-component titulo="ID" id="inputId" id-help="idHelp" texto-ajuda="Opcional. Informe o ID da marca">
-                                        <input type="number" class="form-control" id="inputId" aria-describedby="idHelp" placeholder="ID" />
+                                        <input type="number" class="form-control" id="inputId" aria-describedby="idHelp" placeholder="ID" v-model="busca.id" />
                                     </input-container-component>
                                 </div>
 
                                 <div class="col mb-3">
                                     <input-container-component titulo="Nome" id="inputNome" id-help="nomeHelp" texto-ajuda="Opcional. Informe o nome da marca">
-                                        <input type="number" class="form-control" id="inputNome" aria-describedby="nomeHelp" placeholder="Nome da marca" />
+                                        <input type="text" class="form-control" id="inputNome" aria-describedby="nomeHelp" placeholder="Nome da marca" v-model="busca.nome" />
                                     </input-container-component>
                                 </div>
                             </div>
@@ -24,7 +24,7 @@
                     </template>
 
                     <template v-slot:rodape>
-                        <button type="submit" class="btn btn-primary btn-sm float-right">Pesquisar</button>
+                        <button type="submit" class="btn btn-primary btn-sm float-right" @click="pesquisar()">Pesquisar</button>
                     </template>
                 </card-component>
                 <!-- fim -->
@@ -33,13 +33,33 @@
                 <card-component titulo="Relação de Marcas">
                     <template v-slot:conteudo>
                         <!-- sempre que necessário interpretar uma expressão utilize o v-bind assim como em :titulos="[]" -->
-                        <table-component :dados="marcas" :titulos="['ID', 'Nome', 'Imagem']"></table-component>   
+                        <table-component
+                            :dados="marcas.data" 
+                            :titulos="{
+                                id: {titulo: 'ID', tipo: 'text'},
+                                nome: {titulo: 'Nome', tipo: 'text'},
+                                imagem: {titulo: 'Imagem', tipo: 'image'},
+                                created_at: {titulo: 'Data Criação', tipo: 'date'}
+                            }"
+                        ></table-component>   
                     </template>
 
                     <template v-slot:rodape>
-                        <button type="button" class="btn btn-primary btn-sm float-right"  data-toggle="modal" data-target="#modalMarca">
-                             Adicionar
-                        </button>
+                        <div class="row">
+                            <div class="col-10">
+                                <paginate-component>
+                                    <li v-for="l, indice in marcas.links" :class="l.active ? 'page-item active' : 'page-item'" :key="indice" @click="pagination(l)">
+                                        <!-- v-html esta interpretando qualquer caracter html ou entidade html retornado por l.label -->
+                                        <a class="page-link" v-html="l.label"></a>
+                                    </li>
+                                </paginate-component>
+                            </div>
+                            <div class="col">
+                                <button type="button" class="btn btn-primary btn-sm float-right"  data-toggle="modal" data-target="#modalMarca">
+                                    Adicionar
+                                </button>
+                            </div>
+                        </div>
                     </template>
                 </card-component>
                 <!-- fim -->
@@ -77,7 +97,9 @@
 </template>
 
 <script>
+import Paginate from './Paginate.vue';
     export default {
+  components: { Paginate },
         computed: {
             token() {
                 let token = document.cookie.split(';').find(indice => {
@@ -93,29 +115,46 @@
         data()  {
             return {
                 urlBase: 'http://localhost:8000/api/v1/marca',
+                urlPaginacao: '',
+                urlFiltro: '',
                 nomeMarca: '',
                 arquivoImagem: [],
                 transacaoStatus: '',
                 transacaoDetalhes: [],
-                marcas: []
+                marcas: { data: [] },
+                busca: { 
+                    id: '',
+                    nome: ''
+                }
             }
         },
         methods: {
+            pagination(l) {
+                // A condição no if é testada para evitar erros ao tentar usar previous estando na 
+                // primeiro pagína ou next estando na ultima pagína
+                if(l.url) {
+                    this.urlPaginacao = l.url.split('?')[1];
+                    this.carregarLista();
+                }
+            },
             carregarLista() {
-                 let configuracao = {
+                let url = this.urlBase + '?' + this.urlPaginacao + this.urlFiltro;
+
+                let configuracao = {
                     headers: {
                         'Accept': 'application/json',
                         'Authorization': this.token
                     }
                 }
 
-                axios.get(this.urlBase, configuracao)
+                axios.get(url, configuracao)
                     .then(response => {
                         this.marcas = response.data;    
+                        // console.log(this.marcas)
                     })
                     .catch(errors => {
                         console.log(erros);
-                    })
+                })
             },
             carregarImagem(e) {
                 this.arquivoImagem = e.target.files;
@@ -136,13 +175,35 @@
                 axios.post(this.urlBase, formData, configuracao)
                     .then(response => {
                         this.transacaoStatus = 'adicionado';
-                        this.transacaoDetalhes = response
+                        this.transacaoDetalhes = response;
                     })
                     .catch(error => {
                         this.transacaoStatus = 'erro';
                         this.transacaoDetalhes = error.response
                         // console.log(error.response.data.message)
                     })
+            },
+            pesquisar() {
+                let filtro = '';
+
+                for(let chave in this.busca) {
+                    if(this.busca[chave]) {
+                        if(filtro != '') {
+                            filtro += ';';
+                        }    
+
+                        filtro += chave + ':like:' + this.busca[chave];
+                    }
+                }
+
+                if(filtro != '') {
+                    this.urlPaginacao = 'page=1';
+                    this.urlFiltro = '&filtro='+filtro;
+                } else {
+                    this.urlFiltro = '';
+                }
+
+                this.carregarLista();
             }
         },
         mounted() {
