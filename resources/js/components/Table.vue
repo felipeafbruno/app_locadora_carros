@@ -5,6 +5,9 @@
                 <th scope="col" v-for="t, key in titulos" :key="key" class="text-uppercase">
                     {{ t.titulo }}
                 </th>
+                <th v-if="visualizar.visivel"></th>
+                <th v-if="atualizar.visivel"></th>
+                <th v-if="remover.visivel"></th>
             </tr>
         </thead>
         <tbody>
@@ -28,6 +31,15 @@
                        <img :src="'/storage/'+valor" width="30" heigth="30" />
                    </span>
                 </td>
+                <td v-if="visualizar.visivel">
+                    <button v-if="visualizar" class="btn btn-outline-primary btn-sm" :data-toggle="visualizar.data_toggle" :data-target="visualizar.data_target" @click="setStore(obj)">Visualizar</button>
+                </td>
+                <td v-if="atualizar.visivel">
+                    <button v-if="atualizar" class="btn btn-outline-success btn-sm">Atualizar</button>
+                </td>
+                <td v-if="remover.visivel">
+                    <button v-if="remover" class="btn btn-outline-danger btn-sm" :data-toggle="remover.data_toggle" :data-target="remover.data_target" @click="setStore(obj)">Remover</button>
+                </td>
             </tr>
         </tbody>
     </table> 
@@ -35,20 +47,25 @@
 
 <script>
     export default {
-        props: ['dados', 'titulos'],
-        // Método criado por eu para filtrar dados do objeto marca do segundo v-for
-        // methods: {
-        //     filtrarDados(obj) { 
-        //         let campos = Object.keys(this.titulos);
-        //         let objetoFiltrado = 
-        //         Object.fromEntries(
-        //                 Object.entries(obj).filter(
-        //                     ([key]) => campos.find(campo => campo === key)
-        //                 )
-        //             );
-        //         return objetoFiltrado; 
-        //     }
-        // },
+        props: ['dados', 'titulos', 'atualizar', 'visualizar', 'remover'],
+        methods: {
+            // Método criado por eu para filtrar dados do objeto marca do segundo v-for
+            // filtrarDados(obj) { 
+            //     let campos = Object.keys(this.titulos);
+            //     let objetoFiltrado = 
+            //     Object.fromEntries(
+            //             Object.entries(obj).filter(
+            //                 ([key]) => campos.find(campo => campo === key)
+            //             )
+            //         );
+            //     return objetoFiltrado; 
+            // }
+            setStore(obj) {
+               this.$store.state.item = obj;
+               this.$store.state.transacao.status = '';
+               this.$store.state.transacao.data.message = '';
+            }
+        },
         computed: {
             dadosFiltrados() {
                 let campos = Object.keys(this.titulos);

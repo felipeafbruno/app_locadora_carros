@@ -34,7 +34,10 @@
                     <template v-slot:conteudo>
                         <!-- sempre que necessário interpretar uma expressão utilize o v-bind assim como em :titulos="[]" -->
                         <table-component
-                            :dados="marcas.data" 
+                            :dados="marcas.data"
+                            :visualizar="{ visivel: true, data_toggle: 'modal', data_target: '#modalMarcaVisualizar' }"
+                            :atualizar="true"
+                            :remover="{ visivel: true, data_toggle: 'modal', data_target: '#modalMarcaRemover' }"
                             :titulos="{
                                 id: {titulo: 'ID', tipo: 'text'},
                                 nome: {titulo: 'Nome', tipo: 'text'},
@@ -67,6 +70,7 @@
             </div>
         </div>
 
+        <!-- início do modal de inclusão de marca -->
         <modal-component id="modalMarca" titulo="Adicionar Marca">
             <!-- Alertas  -->
             <template v-slot:alertas>
@@ -93,13 +97,59 @@
                 <button type="button" class="btn btn-primary" @click="salvar()">Salvar</button>
             </template>
         </modal-component>
+        <!-- fim do modal de inclusão de marca -->
+
+        <!-- início do modal de visualização da marca -->
+        <modal-component id="modalMarcaVisualizar" titulo="Visualizar Marca">
+            <template v-slot:conteudo>
+
+                 <input-container-component v-for="valor, indice in $store.state.item" :key="indice" :titulo="indice" >
+                    <input v-if="indice != 'imagem'" type="text" class="form-control" :value="valor" disabled />
+                    <img v-else :src="'storage/'+valor" />
+                </input-container-component>
+
+            </template>
+
+            <template v-slot:rodape>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+            </template>
+        </modal-component>
+        <!-- fim do modal de visualização da marca -->
+
+        <!-- início do modal de remoção da marca -->
+        <modal-component id="modalMarcaRemover" titulo="Remover Marca">
+            <!-- Alertas  -->
+            <template v-slot:alertas>
+                <alert-component tipo="success" :detalhes="$store.state.transacao" titulo="Registro removido com sucesso" v-if="$store.state.transacao.status == 'sucesso'"></alert-component>
+                <alert-component tipo="danger" :detalhes="$store.state.transacao" titulo="Erro ao tentar remover o registro" v-if="$store.state.transacao.status == 'erro'"></alert-component>
+            </template>
+
+            <template v-slot:conteudo v-if="$store.state.transacao.status != 'sucesso'">
+
+                <input-container-component titulo="id" >
+                    <input type="text" class="form-control" :value="$store.state.item.id" disabled />
+                </input-container-component>
+
+                <input-container-component titulo="nome" >
+                    <input type="text" class="form-control" :value="$store.state.item.nome" disabled />
+                </input-container-component>
+
+            </template>
+
+            <template v-slot:rodape>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-danger" @click="remover()" v-if="$store.state.transacao.status != 'sucesso'">Remover</button>
+            </template>
+        </modal-component>
+        <!-- fim do modal de remoção da marca -->
     </div>
 </template>
 
 <script>
+import InputContainerComponent from './InputContainerComponent.vue';
 import Paginate from './Paginate.vue';
     export default {
-  components: { Paginate },
+  components: { Paginate, InputContainerComponent },
         computed: {
             token() {
                 let token = document.cookie.split(';').find(indice => {
@@ -176,12 +226,44 @@ import Paginate from './Paginate.vue';
                     .then(response => {
                         this.transacaoStatus = 'adicionado';
                         this.transacaoDetalhes = response;
+                        this.carregarLista();
                     })
                     .catch(error => {
                         this.transacaoStatus = 'erro';
                         this.transacaoDetalhes = error.response
                         // console.log(error.response.data.message)
                     })
+
+            },
+            remover() {
+                let confirmacao = confirm('Tem certeza que deseja remover esse registro?');
+                
+                if(!confirmacao) {
+                    return false;
+                }                
+
+                let formData = new FormData();
+                formData.append('_method', 'delete');
+
+                let config = {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': this.token 
+                    }
+                }
+
+                let url = this.urlBase + '/' + this.$store.state.item.id;
+                
+                axios.post(url, formData, config)
+                    .then(response => {
+                        this.$store.state.transacao.status = 'sucesso';
+                        this.$store.state.transacao.data.message = response.data.msg;
+                        this.carregarLista();
+                    })
+                    .catch(errors => {
+                        this.$store.state.transacao.status = 'erro';
+                        this.$store.state.transacao.data.message = errors.response.data.erro;
+                    });
             },
             pesquisar() {
                 let filtro = '';
